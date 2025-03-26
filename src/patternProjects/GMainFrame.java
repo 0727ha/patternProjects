@@ -1,7 +1,8 @@
 package patternProjects;
 
 
-import java.awt.FlowLayout;
+import java.awt.BorderLayout;
+//import java.awt.FlowLayout;
 
 import javax.swing.JFrame;
 
@@ -21,18 +22,19 @@ public class GMainFrame extends JFrame {
 		this.setDefaultCloseOperation(EXIT_ON_CLOSE);//close하면 프로그램 끄라는 의미
 		
 		//component
-		this.setLayout(new FlowLayout());
+		this.setLayout(new BorderLayout());
 		
 		//1)
+		this.drawingPanel= new GDrawingPanel();
+		this.add(drawingPanel,BorderLayout.CENTER);
+		//2)
+		this.toolBar =new GToolBar(this.drawingPanel);
+		this.add(toolBar,BorderLayout.NORTH);
+		//3)
 		this.menuBar= new GMenuBar();
 		this.setJMenuBar(menuBar);
-		//2)
-		this.toolBar =new GToolBar();
-		this.add(toolBar);
-		//3)
-		this.drawingPanel= new GDrawingPanel();
-		this.add(drawingPanel);
 		
+	
 		
 	}
 	
