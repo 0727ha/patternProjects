@@ -1,69 +1,178 @@
 package patternProjects;
 
-
-import java.awt.Graphics;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
-
-import javax.swing.JPanel;
+import javax.swing.*;
+import java.awt.*;
+import java.awt.event.*;
+import java.util.ArrayList;
+import java.util.List;
 
 public class GDrawingPanel extends JPanel {
+    private static final long serialVersionUID = 1L;
 
-	private static final long serialVersionUID = 1L;
-	private ShapeType selectedShapeType;
-	
-	//아래 클래스로 코드 작서하기 시작!
-	public GDrawingPanel() {
-		//나중에 마우스 이벤트를 받아내는 부분을 만드는 것 . eventhandler도 사실 다 있음 그것을 사용하는 것
-		this.selectedShapeType = null;
-		
-		this.addMouseListener(new MouseAdapter() {
-		    @Override
-		    public void mousePressed(MouseEvent e) {
-		        draw(e.getX(), e.getY());
-		    }
-		});		
-		
-	}
-	// 외부에서 선택한 도형을 전달받음
-	 public void setSelectedShape(ShapeType shapeType) {
-	        this.selectedShapeType = shapeType;
-	    }
-	 
-	public void draw(int x, int y) {
-		if (selectedShapeType == null) return;// 도형이 선택되지 않았으면 무시 즉 null에대한 예외 처리이다.
-		
-		Graphics graphics =this.getGraphics();
-		
-		switch (selectedShapeType) {
-		case Rectangle:
-			graphics.drawRect(x, y, 100, 60);
-			break;
-		case Oval:
-			graphics.drawOval(x, y, 100, 60);
-			break;
-		case Triangle:
-			int[] xPoints = {x, x + 50, x - 50};
-			int[] yPoints = {y, y + 100, y + 100};
-			graphics.drawPolygon(xPoints, yPoints, 3);
-			break;
-		case Polygon:
-			int[] px = {x, x + 30, x + 50, x + 20, x - 20};
-			int[] py = {y, y - 40, y, y + 50, y + 50};
-			graphics.drawPolygon(px, py, 5);
-			break;
-		case TextBox:
-			graphics.drawRect(x, y, 120, 40);
-			graphics.drawString("Text", x + 10, y + 25);
-			break;
-		default:
-			break;
-	}
-	}
-	
-	public void initialize() {
-	    if (this.selectedShapeType != null) {
-	        this.draw(10, 10);
-	    }
-	}
+    private ShapeType selectedShapeType;
+    private Point startPoint;
+    private Point endPoint;
+    private List<GShape> shapeList;
+    private JTextField textField;
+
+    public GDrawingPanel() {
+        this.selectedShapeType = null;
+        this.shapeList = new ArrayList<>();
+
+        this.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mousePressed(MouseEvent e) {
+                startPoint = e.getPoint();
+
+                // 텍스트박스 클릭 감지
+                for (GShape shape : shapeList) {
+                    if (shape instanceof GTextBox) {
+                        GTextBox textBox = (GTextBox) shape;
+                        if (textBox.containsPoint(e.getX(), e.getY())) {
+                            showTextInput(textBox);
+                            return;
+                        }
+                    }
+                }
+            }
+
+            @Override
+            public void mouseReleased(MouseEvent e) {
+                endPoint = e.getPoint();
+                createShapeFromDrag();
+                repaint();
+            }
+        });
+
+        this.addMouseMotionListener(new MouseAdapter() {
+            @Override
+            public void mouseDragged(MouseEvent e) {
+                endPoint = e.getPoint();
+                repaint();
+            }
+        });
+    }
+
+    public void setSelectedShape(ShapeType shapeType) {
+        this.selectedShapeType = shapeType;
+    }
+
+    public void setTextField(JTextField textField) {
+        this.textField = textField;
+    }
+
+    private void showTextInput(GTextBox textBox) {
+        textField.setText(textBox.getText());
+        textField.setBounds(textBox.x + 1, textBox.y + 1, textBox.width - 2, textBox.height - 2);
+        textField.setVisible(true);
+        textField.requestFocusInWindow();
+
+        // 한 번만 이벤트 리스너 추가
+        for (ActionListener al : textField.getActionListeners()) textField.removeActionListener(al);
+        for (FocusListener fl : textField.getFocusListeners()) textField.removeFocusListener(fl);
+
+        textField.addActionListener(e -> {
+            textBox.setText(textField.getText());
+            textField.setVisible(false);
+            repaint();
+        });
+
+        textField.addFocusListener(new FocusAdapter() {
+            @Override
+            public void focusLost(FocusEvent e) {
+                textBox.setText(textField.getText());
+                textField.setVisible(false);
+                repaint();
+            }
+        });
+    }
+
+    private void createShapeFromDrag() {
+        if (selectedShapeType == null || startPoint == null || endPoint == null) return;
+
+        int x = Math.min(startPoint.x, endPoint.x);
+        int y = Math.min(startPoint.y, endPoint.y);
+        int width = Math.abs(startPoint.x - endPoint.x);
+        int height = Math.abs(startPoint.y - endPoint.y);
+
+        GShape shape = null;
+
+        switch (selectedShapeType) {
+            case Rectangle:
+                shape = new GRectangle(x, y, width, height);
+                break;
+            case Oval:
+                shape = new GOval(x, y, width, height);
+                break;
+            case Triangle:
+                shape = new GTriangle(x, y, width, height);
+                break;
+            case Polygon:
+                shape = new GPolygon(x, y, width, height);
+                break;
+            case TextBox:
+                shape = new GTextBox(x, y, width, height, "");
+                break;
+        }
+
+        if (shape != null) {
+            shapeList.add(shape);
+        }
+
+        startPoint = null;
+        endPoint = null;
+    }
+
+    @Override
+    protected void paintComponent(Graphics g) {
+        super.paintComponent(g);
+
+        for (GShape shape : shapeList) {
+            shape.draw(g);
+        }
+
+        // 드래그 미리보기
+        if (startPoint != null && endPoint != null && selectedShapeType != null) {
+            int x = Math.min(startPoint.x, endPoint.x);
+            int y = Math.min(startPoint.y, endPoint.y);
+            int width = Math.abs(startPoint.x - endPoint.x);
+            int height = Math.abs(startPoint.y - endPoint.y);
+
+            switch (selectedShapeType) {
+                case Rectangle:
+                    g.drawRect(x, y, width, height);
+                    break;
+                case Oval:
+                    g.drawOval(x, y, width, height);
+                    break;
+                case Triangle:
+                    int x1 = x + width / 2;
+                    int y1 = y;
+                    int x2 = x;
+                    int y2 = y + height;
+                    int x3 = x + width;
+                    int y3 = y + height;
+                    g.drawPolygon(new int[]{x1, x2, x3}, new int[]{y1, y2, y3}, 3);
+                    break;
+                case Polygon:
+                    int cx = x + width / 2;
+                    int cy = y + height / 2;
+                    int radius = Math.min(width, height) / 2;
+                    int[] px = new int[5];
+                    int[] py = new int[5];
+                    for (int i = 0; i < 5; i++) {
+                        double angle = Math.toRadians(90 + i * 72);
+                        px[i] = cx + (int)(radius * Math.cos(angle));
+                        py[i] = cy - (int)(radius * Math.sin(angle));
+                    }
+                    g.drawPolygon(px, py, 5);
+                    break;
+                case TextBox:
+                    g.drawRect(x, y, width, height);
+                    break;
+            }
+        }
+    }
+
+    public void initialize() {}
 }

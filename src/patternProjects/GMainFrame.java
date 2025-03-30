@@ -5,6 +5,7 @@ import java.awt.BorderLayout;
 //import java.awt.FlowLayout;
 
 import javax.swing.JFrame;
+import javax.swing.JTextField;
 
 public class GMainFrame extends JFrame {
 	private static final long serialVersionUID= 1L;
@@ -14,6 +15,7 @@ public class GMainFrame extends JFrame {
 	private GMenuBar menuBar;
 	private GToolBar toolBar;
 	private GDrawingPanel drawingPanel;
+	  private JTextField textField;
 	
 	public GMainFrame() {
 		//attiribute : 속성 변화
@@ -24,19 +26,25 @@ public class GMainFrame extends JFrame {
 		//component
 		this.setLayout(new BorderLayout());
 		
-		//1)
-		this.drawingPanel= new GDrawingPanel();
-		this.add(drawingPanel,BorderLayout.CENTER);
-		//2)
-		this.toolBar =new GToolBar(this.drawingPanel);
-		this.add(toolBar,BorderLayout.NORTH);
-		//3)
-		this.menuBar= new GMenuBar();
-		this.setJMenuBar(menuBar);
-		
-	
-		
-	}
+		this.drawingPanel = new GDrawingPanel();
+
+        // 텍스트 입력 필드 생성 및 주입
+        this.textField = new JTextField();
+        this.textField.setVisible(false);
+        this.textField.setBorder(null);
+        this.drawingPanel.setTextField(this.textField);
+        this.drawingPanel.setLayout(null);
+        this.drawingPanel.add(this.textField);
+
+        this.add(drawingPanel, BorderLayout.CENTER);
+
+        this.toolBar = new GToolBar(this.drawingPanel);
+        this.add(toolBar, BorderLayout.NORTH);
+
+        this.menuBar = new GMenuBar();
+        this.setJMenuBar(menuBar);
+    }
+
 	
 	//두번째
 	public void initialize() {
